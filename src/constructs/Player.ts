@@ -1,11 +1,13 @@
+// Import necessary modules and classes from the library
 import * as THREE from 'three'; 
 import { Construct, GraphicsContext, GraphicsPrimitiveFactory, PhysicsColliderFactory, PhysicsContext } from "../lib";
 import { InteractManager } from '../lib/w3ads/InteractManager';
 import { InterfaceContext } from '../lib/w3ads/InterfaceContext';
-
+// Import PointerLockControls for handling first-person controls
 //@ts-ignore
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
+// Define the structure of the KeyboardState type, representing which keys are pressed
 type KeyboardState = {
     LeftPressed: boolean;
     RightPressed: boolean;
@@ -13,16 +15,14 @@ type KeyboardState = {
     DownPressed: boolean;
 };
 
+// Constants for movement speeds and jump physics
 const walkSpeed = 15;
 const sprintSpeed = 10; 
-
 const jumpHeight = 1;
 const jumpSpeed = 2.7;
 const jumpGravity = 1.1;
 
-// Building the event listeners without using anonymous functions (i.e. as class methods) loses the players instance scope in
-// "this". Losing that scope means that the methods are actually using the document scope instead of the player scope
-// This variable will just recapture the player scope, and which can then be used by the event listener callbacks
+// A variable to hold the current scope of the Player instance, useful for event listeners
 let scope: any;
 
 class Player extends Construct {
@@ -32,27 +32,36 @@ class Player extends Construct {
     controls!: PointerLockControls;
     holdingObject: THREE.Mesh | undefined = undefined;
     
+    // Movement direction state
     direction!: { forward: number, backward: number, left: number, right: number };
     speed: number = walkSpeed;
 
+    // UI prompt IDs
     interactPrompt!: number;
     placePrompt!: number;
 
+    // Initialize the player instance with graphics, physics, interactions, and UI contexts
     constructor(graphics: GraphicsContext, physics: PhysicsContext, interactions: InteractManager, userInterface: InterfaceContext) {
         super(graphics, physics, interactions, userInterface);
 
+        // Capture the current instance scope for event listeners
         scope = this;
     }
 
+    // Method to initialize player components like camera and controls
     create = (): void => {
+        // Create and set up the camera
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 1000);
         this.graphics.mainCamera = this.camera;
 
-        // Set up PointerLockControls
+        // Set up PointerLockControls to lock mouse movement to the camera
         this.controls = new PointerLockControls(this.camera, this.graphics.renderer.domElement);
 
+        // Initialize direction movement state
         this.direction = { forward: 0, backward: 0, left: 0, right: 0 };
         this.root.userData.canInteract = false;
+
+        // Interaction setup: allows you to pickup and place an object
         this.interactions.addInteracting(this.root, (object: THREE.Mesh) => {
             const inHandScale = object.userData.inHandScale;
             object.removeFromParent();
@@ -62,29 +71,31 @@ class Player extends Construct {
             this.face.add(object);
         });
 
+        // Setup UI prompts for interaction
         this.interactPrompt = this.userInterface.addPrompt('Press E to interact');
         this.placePrompt = this.userInterface.addPrompt('Press Q to place');
 
-        // Event listeners
+        // Event listeners for movement and pointer lock
         document.addEventListener("keydown", this.onKeyDown);
         document.addEventListener("keyup", this.onKeyUp);
         document.addEventListener("keypress", this.onKeyPress);
         document.addEventListener('click', () => this.graphics.renderer.domElement.requestPointerLock());
 
-        // Pointer lock change handling
+        // Pointer lock change event handling
         document.addEventListener('pointerlockchange', this.onPointerLockChange);
 
         // Automatically lock pointer on click
         this.graphics.renderer.domElement.addEventListener('click', () => {
             this.controls.lock();
         });
-
     }
 
-    load = async(): Promise<void> =>  {
-    }
+    // Placeholder load method for any asynchronous asset loading
+    load = async (): Promise<void> => {}
 
+    // Method to set up player visuals, like body and face, and configure physics
     build = (): void => {
+        // Create the face sphere and add shadows
         this.face = GraphicsPrimitiveFactory.sphere({
             position: { x: 0, y: 3, z: 0 }, 
             rotation: { x: 0, y: 0, z: 0 },
@@ -93,53 +104,55 @@ class Player extends Construct {
             shadows: true,
         });
 
+        // Set up the camera's rotation and visibility layers
         this.camera.rotation.set(0, Math.PI / 2, 0);
         this.camera.layers.enable(0);
         this.camera.layers.set(0);
 
+        // Create the body capsule and add shadows
         const bodyGeometry = new THREE.CapsuleGeometry(1, 3);
-        const bodyMaterial = new THREE.MeshStandardMaterial({ color:0x0000FF });
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x0000FF });
         this.body = new THREE.Mesh(bodyGeometry, bodyMaterial);
 
+        // Attach the camera to the face, and the face to the body
         this.face.add(this.camera);
         this.body.add(this.face);
         this.add(this.body);
-        this.body.layers.set(1);
+        this.body.layers.set(1); //Makes body invisible to camera
 
+        // Add physics properties to the player for jumping & movement
         this.physics.addCharacter(this.root, PhysicsColliderFactory.box(1, 1, 1), {
             jump: true,
             jumpHeight: jumpHeight,
             jumpSpeed: jumpSpeed,
             gravity: jumpGravity,
-        })
+        });
 
+        // Request pointer lock on the renderer's DOM element
         this.graphics.renderer.domElement.requestPointerLock();
     }
 
+    // Update player state every frame, including movement and interaction prompts
     //@ts-ignore ignoring the time variable
     update = (time: number, delta: number): void => {
         delta = delta / 1000;
     
-        // Get camera direction (forward vector)
+        // Get the camera direction (forward vector)
         const direction = new THREE.Vector3();
         this.camera.getWorldDirection(direction);
     
-        // Calculate forward/backward and left/right movement based on camera direction
+        // Calculate movement vectors based on camera direction and input state
         const forward = direction.clone().normalize();
         const right = new THREE.Vector3().crossVectors(this.camera.up, forward).normalize();
     
-        // Calculate local movement
-        const xLocal = this.direction.backward - this.direction.forward; // Forward/backward input
-        const zLocal = this.direction.right - this.direction.left; // Right/left input
+        const xLocal = this.direction.backward - this.direction.forward;
+        const zLocal = this.direction.right - this.direction.left;
     
-        // Combine movement based on input and camera direction
+        // Determine the final movement direction and apply it
         const moveVector = forward.multiplyScalar(xLocal).add(right.multiplyScalar(zLocal));
-    
-        // Move the player based on the combined direction and speed
         this.physics.moveCharacter(this.root, -moveVector.x, 0, -moveVector.z, this.speed * delta);
 
-        // The insertion and removal of these DOM nodes is causing performance hickups 
-        // when nearby to interactable elements - possibly consider switching to signals
+        // Show or hide UI prompts based on interaction possibilities
         if (this.root.userData.canInteract && this.holdingObject === undefined) {
             this.userInterface.showPrompt(this.interactPrompt);
         } else {
@@ -153,24 +166,27 @@ class Player extends Construct {
         }
     }
 
+    // Cleanup event listeners when the player object is destroyed
     destroy = (): void => {
         // document.removeEventListener("keydown", this.onKeyDown);
         // document.removeEventListener("keyup", this.onKeyUp);
         // document.removeEventListener("keypress", this.onKeyPress);
     }
 
+    // Event handler for when pointer lock state changes
     onPointerLockChange() {
         if (document.pointerLockElement !== scope.graphics.renderer.domElement) {
             console.log("Pointer lock lost, pausing game.");
         }
     }
 
+    // Keyboard event handlers for movement keys and speed adjustment
     onKeyDown(event: KeyboardEvent) {
         if (event.key == 'w' || event.key == 'W') { scope.direction.forward = 1; }
         if (event.key == 's' || event.key == 'S') { scope.direction.backward = 1; }
         if (event.key == 'a' || event.key == 'A') { scope.direction.left = 1; }
         if (event.key == 'd' || event.key == 'D') { scope.direction.right = 1; }
-        if (event.key == 'Shift') { scope.speed = sprintSpeed }
+        if (event.key == 'Shift') { scope.speed = sprintSpeed; }
     } 
 
     onKeyUp(event: KeyboardEvent) {
@@ -178,15 +194,16 @@ class Player extends Construct {
         if (event.key == 's' || event.key == 'S') { scope.direction.backward = 0; }
         if (event.key == 'a' || event.key == 'A') { scope.direction.left = 0; }
         if (event.key == 'd' || event.key == 'D') { scope.direction.right = 0; }
-        if (event.key == 'Shift') { scope.speed = walkSpeed }
+        if (event.key == 'Shift') { scope.speed = walkSpeed; }
     }
 
+    // Handles keypresses for jumping, interaction, and debugging world position
     onKeyPress(event: KeyboardEvent) {
         const worldPos = new THREE.Vector3();
         scope.root.getWorldPosition(worldPos);
-        
+
         if (event.key == ' ') { scope.physics.jumpCharacter(scope.root); }
-        if (event.key == 'b' || event.key == 'B'){
+        if (event.key == 'b' || event.key == 'B') {
             console.log(worldPos);
         }
         if (scope.root.userData.canInteract && scope.holdingObject === undefined && !scope.paused) {
