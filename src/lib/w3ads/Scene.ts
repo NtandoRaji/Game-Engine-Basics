@@ -7,7 +7,7 @@ import { InteractManager } from './InteractManager';
 import { InterfaceContext } from './InterfaceContext';
 
 export abstract class Scene {
-    public sceneKey: string;    
+    public sceneKey: string;
     public graphics: GraphicsContext;
     public physics: PhysicsContext;
     public userInterface: InterfaceContext;
@@ -76,7 +76,7 @@ export abstract class Scene {
 
     // Lifecycle Hooks
     abstract create(): void;
-    abstract load() : Promise<void>; 
+    abstract load() : Promise<void>;
     abstract build(): void;
     abstract update(time?: TimeS, delta?: TimeS): void;
     abstract destroy(): void;

@@ -2,32 +2,31 @@ import * as THREE from "three"; // Importing the Three.js library
 import { Scene } from "../lib"; // Importing the base Scene class
 import Player from "../constructs/Player"; // Importing the Player construct
 import Room from "../constructs/Room"; // Importing the Room construct
-import { PeanutButter } from "../constructs/PeanutButter"; // Importing the PeanutButter construct
-import { MilkCarton } from "../constructs/MilkCarton"; // Importing the MilkCarton construct
+import { GroceryItem } from "../constructs/GroceryItem";
 
 // Class representing the ModelLoadingScene, extending the base Scene class
 export class ModelLoadingScene extends Scene {
     camera!: THREE.PerspectiveCamera; // Camera for the scene
     player!: Player; // Player object
-    peanutButter!: PeanutButter; // PeanutButter object
-    milkCarton!: MilkCarton; // MilkCarton object
+    peanutButter!: GroceryItem; // PeanutButter object
+    redWine!: GroceryItem; // MilkCarton object
     room!: Room; // Room object
 
     // Constructor initializes the scene with a unique key and the Ammo physics library
     constructor(AmmoLib: any) {
         super("model-loading", AmmoLib); // Call the parent constructor with the scene key and Ammo library
-        
+
         // Create and add the player construct to the scene
         this.player = new Player(this.graphics, this.physics, this.interactions, this.userInterface);
         this.addConstruct(this.player);
 
         // Create and add the PeanutButter construct to the scene
-        this.peanutButter = new PeanutButter(this.graphics, this.physics, this.interactions, this.userInterface, 20);
+        this.peanutButter = new GroceryItem(this.graphics, this.physics, this.interactions, this.userInterface, "peanut_butter", 20);
         this.addConstruct(this.peanutButter);
 
         // Create and add the MilkCarton construct to the scene
-        this.milkCarton = new MilkCarton(this.graphics, this.physics, this.interactions, this.userInterface);
-        this.addConstruct(this.milkCarton);
+        this.redWine = new GroceryItem(this.graphics, this.physics, this.interactions, this.userInterface, "red_wine", 40);
+        this.addConstruct(this.redWine);
 
         // Create and add the Room construct to the scene
         this.room = new Room(this.graphics, this.physics, this.interactions, this.userInterface);
@@ -39,7 +38,7 @@ export class ModelLoadingScene extends Scene {
         // Set the initial positions of the player and objects in the scene
         this.player.root.position.set(10, 10, 0);
         this.peanutButter.root.position.set(-20, 0, 10); // Position of the peanut butter
-        this.milkCarton.root.position.set(-20, 0, 0); // Position of the milk carton
+        this.redWine.root.position.set(-20, 0, 0); // Position of the milk carton
     }
 
     // Asynchronous method to load resources for the scene (currently empty)
