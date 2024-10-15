@@ -200,20 +200,16 @@ class Player extends Construct {
     }
 
     checkLookingAtGroceryItem = (groceryItems: GroceryItem[]) : void => {
+        this.lookingAtGroceryItem = false;
         for (let i = 0; i < groceryItems.length; i++){
             const intersects = this.raycaster.intersectObject(groceryItems[i].root);
+            groceryItems[i].setBeingLookedAt(false);
 
             if (intersects.length > 0){
                 this.lookingAtGroceryItem = true;
                 groceryItems[i].setBeingLookedAt(true);
-                console.log(groceryItems[i].root.userData.beingLookedAt, groceryItems[i].filename);
-                return;
-            }
-            else {
-                groceryItems[i].setBeingLookedAt(false);
             }
         }
-        this.lookingAtGroceryItem = false;
     }
 
     checkLookingAtPickupSpot = (pickupSpots: Box[]) : void => {

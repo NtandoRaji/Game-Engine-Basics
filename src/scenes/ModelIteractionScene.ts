@@ -15,9 +15,9 @@ export class ModelIteractionScene extends Scene {
     player!: Player; // Player object
     peanutButter!: GroceryItem; // PeanutButter object
     redWine!: GroceryItem;
-    pickupSpot!: Box; // Box used as a pickup spot for the peanut butter
-    placementSpot!: Box; // Box used as a placement spot for the peanut butter
-    placementSpot2!:Box;
+    redCube!: Box; // Box used as a pickup spot for the peanut butter
+    greenCube!: Box; // Box used as a placement spot for the peanut butter
+    blueCube!:Box;
 
     // Constructor initializes the scene with a unique key and the Ammo physics library
     constructor(AmmoLib: any) {
@@ -34,8 +34,8 @@ export class ModelIteractionScene extends Scene {
         this.addConstruct(this.room);
 
         // Create and add a box to serve as a pickup spot for the peanut butter
-        this.pickupSpot = new Box(this.graphics, this.physics, this.interactions, this.userInterface, [0, 0, 0], 2, 0xff0000);
-        this.addConstruct(this.pickupSpot);
+        this.redCube = new Box(this.graphics, this.physics, this.interactions, this.userInterface, [0, 0, 0], 2, 0xff0000);
+        this.addConstruct(this.redCube);
 
         // Create and add the peanut butter construct to the scene
         this.peanutButter = new GroceryItem(this.graphics, this.physics, this.interactions, this.userInterface, "peanut_butter", 3);
@@ -46,56 +46,51 @@ export class ModelIteractionScene extends Scene {
         this.addConstruct(this.redWine);
 
         // Create and add a box to serve as a placement spot for the peanut butter
-        this.placementSpot = new Box(this.graphics, this.physics, this.interactions, this.userInterface, [0, 0, 0], 2, 0x00ff00);
-        this.addConstruct(this.placementSpot);
+        this.greenCube = new Box(this.graphics, this.physics, this.interactions, this.userInterface, [0, 0, 0], 2, 0x00ff00);
+        this.addConstruct(this.greenCube);
 
-        this.placementSpot2 = new Box(this.graphics, this.physics, this.interactions, this.userInterface, [0, 0, 0], 2, 0x00000ff);
-        this.addConstruct(this.placementSpot2);
+        this.blueCube = new Box(this.graphics, this.physics, this.interactions, this.userInterface, [0, 0, 0], 2, 0x00000ff);
+        this.addConstruct(this.blueCube);
     }
 
     // Lifecycle method to create the scene elements
     create(): void {
         // Set the position for the pickup spot
-        this.pickupSpot.root.position.set(-20, 2, 0);
-
+        this.redCube.root.position.set(-20, 2, 0);
         // Add interaction for picking up the peanut butter from the pickup spot
-        this.pickupSpot.interactions.addPickupSpot(this.pickupSpot.root, 5, (placeObject: THREE.Object3D) => {
-            this.pickupSpot.root.add(placeObject); // Add the object to the pickup spot
+        this.redCube.interactions.addPickupSpot(this.redCube.root, 5, (placeObject: THREE.Object3D) => {
+            this.redCube.root.add(placeObject); // Add the object to the pickup spot
+            placeObject.position.set(0, 1, 0); // Set the position of the placed object
+            placeObject.scale.setScalar(1); // Reset the scale of the placed object
+        });
+
+        // Set the position for the placement spot
+        this.greenCube.root.position.set(20, 2, 0);
+        // Add interaction for placing the peanut butter at the placement spot
+        this.greenCube.interactions.addPickupSpot(this.greenCube.root, 5, (placeObject: THREE.Object3D) => {
+            this.greenCube.root.add(placeObject); // Add the object to the placement spot
+            placeObject.position.set(0, 1, 0); // Set the position of the placed object
+            placeObject.scale.setScalar(1); // Reset the scale of the placed object
+        });
+
+        this.blueCube.root.position.set(20, 2, 2);
+        // Add interaction for placing the peanut butter at the placement spot
+        this.blueCube.interactions.addPickupSpot(this.blueCube.root, 5, (placeObject: THREE.Object3D) => {
+            this.blueCube.root.add(placeObject); // Add the object to the placement spot
             placeObject.position.set(0, 1, 0); // Set the position of the placed object
             placeObject.scale.setScalar(1); // Reset the scale of the placed object
         });
 
         // Set the position for the peanut butter object
-        this.peanutButter.root.position.set(20, 3, 0);
-
-        // Add interaction for picking up the peanut butter
+        this.greenCube.addConstruct(this.peanutButter);
+        this.peanutButter.root.position.set(0, 1, 0);
         this.peanutButter.interactions.addPickupObject(this.peanutButter.root, 5, 1, () => {
             // Currently empty callback for the pickup action
-            console.log(this.peanutButter.filename);
         });
 
-        this.redWine.root.position.set(20, 3, 2);
+        this.blueCube.addConstruct(this.redWine);
+        this.redWine.root.position.set(0, 1, 0);
         this.redWine.interactions.addPickupObject(this.redWine.root, 5, 1, () => {
-            console.log(this.redWine.filename);
-        });
-
-        // Set the position for the placement spot
-        this.placementSpot.root.position.set(20, 2, 0);
-
-        // Add interaction for placing the peanut butter at the placement spot
-        this.placementSpot.interactions.addPickupSpot(this.placementSpot.root, 5, (placeObject: THREE.Object3D) => {
-            this.placementSpot.root.add(placeObject); // Add the object to the placement spot
-            placeObject.position.set(0, 1, 0); // Set the position of the placed object
-            placeObject.scale.setScalar(1); // Reset the scale of the placed object
-        });
-
-        this.placementSpot2.root.position.set(20, 2, 2);
-
-        // Add interaction for placing the peanut butter at the placement spot
-        this.placementSpot2.interactions.addPickupSpot(this.placementSpot2.root, 5, (placeObject: THREE.Object3D) => {
-            this.placementSpot2.root.add(placeObject); // Add the object to the placement spot
-            placeObject.position.set(0, 1, 0); // Set the position of the placed object
-            placeObject.scale.setScalar(1); // Reset the scale of the placed object
         });
     }
 
@@ -120,7 +115,7 @@ export class ModelIteractionScene extends Scene {
     // Method to update the scene on each frame (currently empty)
     update(time: number, delta: number): void {
         this.player.checkLookingAtGroceryItem([this.peanutButter, this.redWine]);
-        this.player.checkLookingAtPickupSpot([this.pickupSpot, this.placementSpot, this.placementSpot2]);
+        this.player.checkLookingAtPickupSpot([this.redCube, this.greenCube, this.blueCube]);
     }
 
     // Method to clean up resources when the scene is destroyed (currently empty)
