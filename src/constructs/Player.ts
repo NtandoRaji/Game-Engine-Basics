@@ -1,11 +1,13 @@
 // Import necessary modules and classes from the library
-import * as THREE from 'three'; 
+import * as THREE from 'three';
 import { Construct, GraphicsContext, GraphicsPrimitiveFactory, PhysicsColliderFactory, PhysicsContext } from "../lib";
 import { InteractManager } from '../lib/w3ads/InteractManager';
 import { InterfaceContext } from '../lib/w3ads/InterfaceContext';
 // Import PointerLockControls for handling first-person controls
 //@ts-ignore
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { GroceryItem } from './GroceryItem';
+import Box from "./Box"
 
 // Define the structure of the KeyboardState type, representing which keys are pressed
 type KeyboardState = {
@@ -17,7 +19,7 @@ type KeyboardState = {
 
 // Constants for movement speeds and jump physics
 const walkSpeed = 15;
-const sprintSpeed = 10; 
+const sprintSpeed = 10;
 const jumpHeight = 1;
 const jumpSpeed = 2.7;
 const jumpGravity = 1.1;
@@ -31,7 +33,11 @@ class Player extends Construct {
     camera!: THREE.PerspectiveCamera;
     controls!: PointerLockControls;
     holdingObject: THREE.Mesh | undefined = undefined;
-    
+    lookingAtGroceryItem: boolean = false;
+    lookingAtPickupSpot: boolean = false;
+
+    raycaster!: THREE.Raycaster;
+
     // Movement direction state
     direction!: { forward: number, backward: number, left: number, right: number };
     speed: number = walkSpeed;
@@ -39,6 +45,7 @@ class Player extends Construct {
     // UI prompt IDs
     interactPrompt!: number;
     placePrompt!: number;
+    crosshair!: any;
 
     // Initialize the player instance with graphics, physics, interactions, and UI contexts
     constructor(graphics: GraphicsContext, physics: PhysicsContext, interactions: InteractManager, userInterface: InterfaceContext) {
@@ -60,6 +67,9 @@ class Player extends Construct {
         // Initialize direction movement state
         this.direction = { forward: 0, backward: 0, left: 0, right: 0 };
         this.root.userData.canInteract = false;
+        this.root.userData.lookingAtObject = false;
+
+        this.raycaster = new THREE.Raycaster();
 
         // Interaction setup: allows you to pickup and place an object
         this.interactions.addInteracting(this.root, (object: THREE.Mesh) => {
@@ -68,7 +78,7 @@ class Player extends Construct {
             object.position.set(2, -1.5, -2);
             object.scale.setScalar(inHandScale);
             this.holdingObject = object;
-            this.face.add(object);
+            this.camera.add(object);
         });
 
         // Setup UI prompts for interaction
@@ -88,6 +98,17 @@ class Player extends Construct {
         this.graphics.renderer.domElement.addEventListener('click', () => {
             this.controls.lock();
         });
+
+        this.crosshair = document.createElement('div');
+        this.crosshair.style.position = 'absolute';
+        this.crosshair.style.top = '50%';
+        this.crosshair.style.left = '50%';
+        this.crosshair.style.transform = 'translate(-50%, -50%)';
+        this.crosshair.style.width = '20px';
+        this.crosshair.style.height = '20px';
+        this.crosshair.style.border = '2px solid red';
+        this.crosshair.style.borderRadius = '50%';
+        document.body.appendChild(this.crosshair);
     }
 
     // Placeholder load method for any asynchronous asset loading
@@ -97,7 +118,7 @@ class Player extends Construct {
     build = (): void => {
         // Create the face sphere and add shadows
         this.face = GraphicsPrimitiveFactory.sphere({
-            position: { x: 0, y: 3, z: 0 }, 
+            position: { x: 0, y: 3, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
             radius: 0.8,
             colour: 0x0000FF,
@@ -136,24 +157,36 @@ class Player extends Construct {
     //@ts-ignore ignoring the time variable
     update = (time: number, delta: number): void => {
         delta = delta / 1000;
-    
+
         // Get the camera direction (forward vector)
         const direction = new THREE.Vector3();
         this.camera.getWorldDirection(direction);
-    
+
         // Calculate movement vectors based on camera direction and input state
         const forward = direction.clone().normalize();
         const right = new THREE.Vector3().crossVectors(this.camera.up, forward).normalize();
-    
+
         const xLocal = this.direction.backward - this.direction.forward;
         const zLocal = this.direction.right - this.direction.left;
-    
+
         // Determine the final movement direction and apply it
         const moveVector = forward.multiplyScalar(xLocal).add(right.multiplyScalar(zLocal));
         this.physics.moveCharacter(this.root, -moveVector.x, 0, -moveVector.z, this.speed * delta);
 
+        this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+
         // Show or hide UI prompts based on interaction possibilities
-        if (this.root.userData.canInteract && this.holdingObject === undefined) {
+        if (this.lookingAtGroceryItem){
+            this.crosshair.style.borderColor = 'green';
+        } else if (this.lookingAtPickupSpot) {
+            this.crosshair.style.borderColor = 'white';
+        }
+        else {
+            this.crosshair.style.borderColor = 'red';
+        }
+
+        // Show or hide UI prompts based on interaction possibilities
+        if (this.root.userData.canInteract && this.lookingAtGroceryItem) {
             this.userInterface.showPrompt(this.interactPrompt);
         } else {
             this.userInterface.hidePrompt(this.interactPrompt);
@@ -166,11 +199,35 @@ class Player extends Construct {
         }
     }
 
+    checkLookingAtGroceryItem = (groceryItems: GroceryItem[]) : void => {
+        this.lookingAtGroceryItem = false;
+        for (let i = 0; i < groceryItems.length; i++){
+            const intersects = this.raycaster.intersectObject(groceryItems[i].root);
+            groceryItems[i].setBeingLookedAt(false);
+
+            if (intersects.length > 0){
+                this.lookingAtGroceryItem = true;
+                groceryItems[i].setBeingLookedAt(true);
+            }
+        }
+    }
+
+    checkLookingAtPickupSpot = (pickupSpots: Box[]) : void => {
+        this.lookingAtPickupSpot = false;
+
+        for (let i = 0; i < pickupSpots.length; i++){
+            const intersects = this.raycaster.intersectObject(pickupSpots[i].root);
+            pickupSpots[i].setBeingLookedAt(false);
+
+            if (intersects.length > 0){
+                this.lookingAtPickupSpot = true;
+                pickupSpots[i].setBeingLookedAt(true);
+            }
+        }
+    }
+
     // Cleanup event listeners when the player object is destroyed
     destroy = (): void => {
-        // document.removeEventListener("keydown", this.onKeyDown);
-        // document.removeEventListener("keyup", this.onKeyUp);
-        // document.removeEventListener("keypress", this.onKeyPress);
     }
 
     // Event handler for when pointer lock state changes
@@ -187,7 +244,7 @@ class Player extends Construct {
         if (event.key == 'a' || event.key == 'A') { scope.direction.left = 1; }
         if (event.key == 'd' || event.key == 'D') { scope.direction.right = 1; }
         if (event.key == 'Shift') { scope.speed = sprintSpeed; }
-    } 
+    }
 
     onKeyUp(event: KeyboardEvent) {
         if (event.key == 'w' || event.key == 'W') { scope.direction.forward = 0; }
@@ -206,12 +263,12 @@ class Player extends Construct {
         if (event.key == 'b' || event.key == 'B') {
             console.log(worldPos);
         }
-        if (scope.root.userData.canInteract && scope.holdingObject === undefined && !scope.paused) {
+        if (scope.root.userData.canInteract && scope.lookingAtGroceryItem && scope.holdingObject === undefined && !scope.paused) {
             if (event.key == 'e' || event.key == 'E') {
                 scope.root.userData.onInteract();
             }
         }
-        if (scope.root.userData.canPlace && scope.holdingObject !== undefined && !scope.paused) {
+        if (scope.root.userData.canPlace && scope.lookingAtPickupSpot && scope.holdingObject !== undefined && !scope.paused) {
             if (event.key == 'q' || event.key == 'Q') {
                 scope.root.userData.onPlace(scope.holdingObject);
                 scope.holdingObject = undefined;

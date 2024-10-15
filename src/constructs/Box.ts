@@ -12,7 +12,7 @@ class Box extends Construct {
     scale!: number;
 
     // Constructor initializes the Box with the specified contexts, position, scale, and color
-    constructor(graphics: GraphicsContext, physics: PhysicsContext, interactions: InteractManager, 
+    constructor(graphics: GraphicsContext, physics: PhysicsContext, interactions: InteractManager,
             userInterface: InterfaceContext, position: number[] = [0, 0, 0], scale: number = 1, colour: number = 0xeeeeee) {
         // Call the superclass (Construct) constructor
         super(graphics, physics, interactions, userInterface);
@@ -24,7 +24,9 @@ class Box extends Construct {
     }
 
     // The create method for initializing or preparing the Box; can be expanded if needed
-    create = (): void => {}
+    create = (): void => {
+        this.setBeingLookedAt(false);
+    }
 
     // The load method for asynchronous loading of resources or assets; currently a placeholder
     load = async (): Promise<void> => {}
@@ -32,8 +34,8 @@ class Box extends Construct {
     // Method to build the Box; creates the 3D representation of the Box and its physical properties
     build = (): void => {
         // Create a cube with specified position, rotation, scale, and color using GraphicsPrimitiveFactory
-        const cube = GraphicsPrimitiveFactory.box({ 
-            position: { x: this.position[0], y: this.position[1], z: this.position[2]}, 
+        const cube = GraphicsPrimitiveFactory.box({
+            position: { x: this.position[0], y: this.position[1], z: this.position[2]},
             rotation: { x: 0, y: 0, z: 0 },
             scale: { x: this.scale, y: this.scale, z: this.scale },
             colour: this.colour,
@@ -58,6 +60,10 @@ class Box extends Construct {
 
     // The destroy method, called when the Box is to be removed or cleaned up
     destroy = (): void  => {}
+
+    setBeingLookedAt(value: boolean): void{
+        this.root.userData.beingLookedAt = value;
+    }
 }
 
 // Export the Box class as the default export for use in other modules

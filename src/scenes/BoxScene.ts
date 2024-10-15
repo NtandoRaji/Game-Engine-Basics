@@ -13,7 +13,7 @@ export class BoxScene extends Scene {
     // Constructor initializes the scene with a unique key and the Ammo physics library
     constructor(AmmoLib: any) {
         super("box-scene", AmmoLib); // Call the parent constructor with the scene key and Ammo library
-        
+
         // Create and add the player construct to the scene
         this.player = new Player(this.graphics, this.physics, this.interactions, this.userInterface);
         this.addConstruct(this.player);
@@ -27,7 +27,7 @@ export class BoxScene extends Scene {
     create(): void {
         // Set the initial position of the player
         this.player.root.position.set(10, 10, 0);
-        
+
         // Arrays to define box positions and colors
         const positions = [20, -20, 0]; // Positions for the boxes
         const colours = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00]; // Colors for the boxes
@@ -38,10 +38,10 @@ export class BoxScene extends Scene {
                 const boxPosition = [positions[i], 2, positions[j]]; // Calculate the position for the box
                 // Create a new Box construct
                 const newBox = new Box(
-                    this.graphics, 
-                    this.physics, 
-                    this.interactions, 
-                    this.userInterface, 
+                    this.graphics,
+                    this.physics,
+                    this.interactions,
+                    this.userInterface,
                     boxPosition, // Position for the box
                     4, // Size parameter for the box (assumed to be the size)
                     colours[2 * i / 2 + j * 2] // Color selection for the box

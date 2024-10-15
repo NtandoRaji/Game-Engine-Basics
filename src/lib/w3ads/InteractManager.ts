@@ -35,7 +35,7 @@ export class InteractManager {
 
     addInteracting(object: THREE.Object3D, onPickup: Function) {
         this.interactingObjects.push({
-            object, onPickup, 
+            object, onPickup,
         } satisfies InteractingObject);
     }
 
@@ -105,7 +105,7 @@ export class InteractManager {
                     interacting.object.userData.canInteract = false;
                 }
             }
-           
+
 
             // Place object search
             let minSpot = 0;
